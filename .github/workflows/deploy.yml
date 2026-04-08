@@ -6,17 +6,16 @@ inputs:
 environment:
 description: "Choose environment"
 required: true
+default: "dev"
 type: choice
 options:
 - dev
 - qa
 - prod
-
-```
-  base_name:
-    description: "Enter base server name"
-    required: true
-```
+base_name:
+description: "Base server name"
+required: true
+default: "my-server"
 
 jobs:
 deploy:
@@ -24,37 +23,32 @@ runs-on: ubuntu-latest
 
 ```
 steps:
-  - name: Checkout Code
+  - name: Checkout
     uses: actions/checkout@v3
 
-  # 🔐 AWS Credentials (MOST IMPORTANT)
-  - name: Configure AWS Credentials
+  - name: AWS Credentials
     uses: aws-actions/configure-aws-credentials@v4
     with:
       aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
       aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       aws-region: ap-south-1
 
-  # ⚙️ Terraform Setup
   - name: Setup Terraform
     uses: hashicorp/setup-terraform@v2
 
-  # 📂 Terraform Init
-  - name: Terraform Init
+  - name: Init
+    working-directory: env/${{ github.event.inputs.environment }}
     run: terraform init
-    working-directory: env/${{ github.event.inputs.environment }}
 
-  # 📊 Terraform Plan
-  - name: Terraform Plan
-    run: |
-      terraform plan \
-      -var="base_name=${{ github.event.inputs.base_name }}"
+  - name: Plan
     working-directory: env/${{ github.event.inputs.environment }}
+    run: |
+      echo "Deploy plan for ${{ github.event.inputs.environment }}"
+      terraform plan -var="base_name=${{ github.event.inputs.base_name }}"
 
-  # 🚀 Terraform Apply
-  - name: Terraform Apply
-    run: |
-      terraform apply -auto-approve \
-      -var="base_name=${{ github.event.inputs.base_name }}"
+  - name: Apply
     working-directory: env/${{ github.event.inputs.environment }}
+    run: |
+      echo "Deploying ${{ github.event.inputs.environment }}"
+      terraform apply -auto-approve -var="base_name=${{ github.event.inputs.base_name }}"
 ```
