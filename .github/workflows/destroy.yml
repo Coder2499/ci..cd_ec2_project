@@ -19,15 +19,6 @@ jobs:
     name: Terraform Destroy
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        env: [dev, qa, prod]
-
-    # Run all when "all" is selected, otherwise only selected env
-    if: |
-      github.event.inputs.environment == 'all' ||
-      github.event.inputs.environment == matrix.env
-
     defaults:
       run:
         shell: bash
@@ -39,17 +30,27 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
-      - name: Set Environment Variable
-        run: echo "ENV=${{ matrix.env }}" >> $GITHUB_ENV
-
       - name: Terraform Init
         run: terraform init
 
-      - name: Select Workspace
+      - name: Destroy Selected Environment(s)
         run: |
-          terraform workspace select $ENV || echo "Workspace not found, skipping..."
+          if [ "${{ github.event.inputs.environment }}" == "all" ]; then
+            ENV_LIST="dev qa prod"
+          else
+            ENV_LIST="${{ github.event.inputs.environment }}"
+          fi
 
-      - name: Terraform Destroy
-        run: |
-          terraform destroy -auto-approve \
-            -var="environment=$ENV"
+          for ENV in $ENV_LIST; do
+            echo "=============================="
+            echo "Destroying environment: $ENV"
+            echo "=============================="
+
+            terraform workspace select $ENV || {
+              echo "Workspace $ENV not found, skipping..."
+              continue
+            }
+
+            terraform destroy -auto-approve \
+              -var="environment=$ENV"
+          done
