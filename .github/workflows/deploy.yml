@@ -1,54 +1,58 @@
-name: Deploy EC2
+name: Deploy Infrastructure
 
 on:
-workflow_dispatch:
-inputs:
-environment:
-description: "Choose environment"
-required: true
-default: "dev"
-type: choice
-options:
-- dev
-- qa
-- prod
-base_name:
-description: "Base server name"
-required: true
-default: "my-server"
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Choose environment"
+        required: true
+        default: "dev"
+        type: choice
+        options:
+          - dev
+          - qa
+          - prod
+      base_name:
+        description: "Base server name"
+        required: true
+        default: "my-server"
 
 jobs:
-deploy:
-runs-on: ubuntu-latest
+  deploy:
+    name: Terraform Deploy
+    runs-on: ubuntu-latest
 
-```
-steps:
-  - name: Checkout
-    uses: actions/checkout@v3
+    defaults:
+      run:
+        shell: bash
 
-  - name: AWS Credentials
-    uses: aws-actions/configure-aws-credentials@v4
-    with:
-      aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      aws-region: ap-south-1
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
 
-  - name: Setup Terraform
-    uses: hashicorp/setup-terraform@v2
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
 
-  - name: Init
-    working-directory: env/${{ github.event.inputs.environment }}
-    run: terraform init
+      - name: Set Environment Variables
+        run: |
+          echo "ENV=${{ github.event.inputs.environment }}" >> $GITHUB_ENV
+          echo "BASE_NAME=${{ github.event.inputs.base_name }}" >> $GITHUB_ENV
 
-  - name: Plan
-    working-directory: env/${{ github.event.inputs.environment }}
-    run: |
-      echo "Deploy plan for ${{ github.event.inputs.environment }}"
-      terraform plan -var="base_name=${{ github.event.inputs.base_name }}"
+      - name: Terraform Init
+        run: terraform init
 
-  - name: Apply
-    working-directory: env/${{ github.event.inputs.environment }}
-    run: |
-      echo "Deploying ${{ github.event.inputs.environment }}"
-      terraform apply -auto-approve -var="base_name=${{ github.event.inputs.base_name }}"
-```
+      - name: Select Workspace
+        run: |
+          terraform workspace select $ENV || terraform workspace new $ENV
+
+      - name: Terraform Plan
+        run: |
+          terraform plan \
+            -var="environment=$ENV" \
+            -var="base_name=$BASE_NAME"
+
+      - name: Terraform Apply
+        run: |
+          terraform apply -auto-approve \
+            -var="environment=$ENV" \
+            -var="base_name=$BASE_NAME"
