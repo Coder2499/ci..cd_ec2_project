@@ -1,36 +1,60 @@
 name: Deploy EC2
 
 on:
-  workflow_dispatch:
-    inputs:
-      environment:
-        description: "Choose environment"
-        required: true
-        type: choice
-        options:
-          - dev
-          - qa
-          - prod
-      base_name:
-        description: "Enter base server name"
-        required: true
+workflow_dispatch:
+inputs:
+environment:
+description: "Choose environment"
+required: true
+type: choice
+options:
+- dev
+- qa
+- prod
+
+```
+  base_name:
+    description: "Enter base server name"
+    required: true
+```
 
 jobs:
-  deploy:
-    runs-on: ubuntu-latest
+deploy:
+runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+```
+steps:
+  - name: Checkout Code
+    uses: actions/checkout@v3
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+  # 🔐 AWS Credentials (MOST IMPORTANT)
+  - name: Configure AWS Credentials
+    uses: aws-actions/configure-aws-credentials@v4
+    with:
+      aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      aws-region: ap-south-1
 
-      - name: Terraform Init
-        run: terraform init
-        working-directory: env/${{ github.event.inputs.environment }}
+  # ⚙️ Terraform Setup
+  - name: Setup Terraform
+    uses: hashicorp/setup-terraform@v2
 
-      - name: Terraform Apply
-        run: |
-          terraform apply -auto-approve -var="base_name=${{ github.event.inputs.base_name }}"
-        working-directory: env/${{ github.event.inputs.environment }}
+  # 📂 Terraform Init
+  - name: Terraform Init
+    run: terraform init
+    working-directory: env/${{ github.event.inputs.environment }}
+
+  # 📊 Terraform Plan
+  - name: Terraform Plan
+    run: |
+      terraform plan \
+      -var="base_name=${{ github.event.inputs.base_name }}"
+    working-directory: env/${{ github.event.inputs.environment }}
+
+  # 🚀 Terraform Apply
+  - name: Terraform Apply
+    run: |
+      terraform apply -auto-approve \
+      -var="base_name=${{ github.event.inputs.base_name }}"
+    working-directory: env/${{ github.event.inputs.environment }}
+```

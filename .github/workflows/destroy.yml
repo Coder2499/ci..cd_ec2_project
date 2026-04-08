@@ -1,36 +1,70 @@
 name: Destroy EC2
 
 on:
-  workflow_dispatch:
-    inputs:
-      environment:
-        description: "Choose environment to destroy"
-        required: true
-        type: choice
-        options:
-          - dev
-          - qa
-          - prod
-          - all
+workflow_dispatch:
+inputs:
+environment:
+description: "Choose environment to destroy"
+required: true
+type: choice
+options:
+- dev
+- qa
+- prod
+- all
+
+```
+  base_name:
+    description: "Enter base server name"
+    required: true
+```
 
 jobs:
-  destroy:
-    runs-on: ubuntu-latest
+destroy:
+runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        env: [dev, qa, prod]
+```
+strategy:
+  matrix:
+    env: [dev, qa, prod]
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+steps:
+  - name: Checkout Code
+    uses: actions/checkout@v3
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+  # 🔐 AWS Credentials
+  - name: Configure AWS Credentials
+    uses: aws-actions/configure-aws-credentials@v4
+    with:
+      aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      aws-region: ap-south-1
 
-      - name: Run Destroy
-        if: ${{ github.event.inputs.environment == 'all' || github.event.inputs.environment == matrix.env }}
-        run: |
-          cd env/${{ matrix.env }}
-          terraform init
-          terraform destroy -auto-approve
+  # ⚙️ Terraform Setup
+  - name: Setup Terraform
+    uses: hashicorp/setup-terraform@v2
+
+  # 📂 Terraform Init
+  - name: Terraform Init
+    if: ${{ github.event.inputs.environment == 'all' || github.event.inputs.environment == matrix.env }}
+    run: terraform init
+    working-directory: env/${{ matrix.env }}
+
+  # 📊 Terraform Destroy Plan (SHOW WHAT WILL BE DELETED 🔥)
+  - name: Terraform Plan Destroy
+    if: ${{ github.event.inputs.environment == 'all' || github.event.inputs.environment == matrix.env }}
+    run: |
+      echo "===== DESTROY PLAN for ${{ matrix.env }} ====="
+      terraform plan -destroy \
+      -var="base_name=${{ github.event.inputs.base_name }}"
+    working-directory: env/${{ matrix.env }}
+
+  # 💣 Terraform Destroy (ACTUAL DELETE)
+  - name: Terraform Destroy
+    if: ${{ github.event.inputs.environment == 'all' || github.event.inputs.environment == matrix.env }}
+    run: |
+      echo "===== DESTROYING ${{ matrix.env }} ====="
+      terraform destroy -auto-approve \
+      -var="base_name=${{ github.event.inputs.base_name }}"
+    working-directory: env/${{ matrix.env }}
+```
