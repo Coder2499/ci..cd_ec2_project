@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       environment:
-        description: "Choose environment to destroy"
+        description: "Choose environment"
         required: true
         default: "dev"
         type: choice
@@ -16,40 +16,28 @@ on:
 
 jobs:
   destroy:
-    name: Terraform Destroy
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        shell: bash
-
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+      - uses: hashicorp/setup-terraform@v3
 
       - name: Terraform Init
         run: terraform init
 
-      - name: Destroy Selected Environment(s)
+      - name: Destroy
         run: |
           if [ "${{ github.event.inputs.environment }}" == "all" ]; then
-            ENV_LIST="dev qa prod"
+            ENVS="dev qa prod"
           else
-            ENV_LIST="${{ github.event.inputs.environment }}"
+            ENVS="${{ github.event.inputs.environment }}"
           fi
 
-          for ENV in $ENV_LIST; do
-            echo "=============================="
-            echo "Destroying environment: $ENV"
-            echo "=============================="
+          for ENV in $ENVS; do
+            echo "Destroying $ENV"
 
-            terraform workspace select $ENV || {
-              echo "Workspace $ENV not found, skipping..."
-              continue
-            }
+            terraform workspace select $ENV || continue
 
             terraform destroy -auto-approve \
               -var="environment=$ENV"

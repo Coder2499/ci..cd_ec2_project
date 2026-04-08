@@ -19,40 +19,23 @@ on:
 
 jobs:
   deploy:
-    name: Terraform Deploy
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        shell: bash
-
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-
-      - name: Set Environment Variables
-        run: |
-          echo "ENV=${{ github.event.inputs.environment }}" >> $GITHUB_ENV
-          echo "BASE_NAME=${{ github.event.inputs.base_name }}" >> $GITHUB_ENV
+      - uses: hashicorp/setup-terraform@v3
 
       - name: Terraform Init
         run: terraform init
 
-      - name: Select Workspace
+      - name: Workspace Select/Create
         run: |
-          terraform workspace select $ENV || terraform workspace new $ENV
-
-      - name: Terraform Plan
-        run: |
-          terraform plan \
-            -var="environment=$ENV" \
-            -var="base_name=$BASE_NAME"
+          terraform workspace select ${{ github.event.inputs.environment }} \
+          || terraform workspace new ${{ github.event.inputs.environment }}
 
       - name: Terraform Apply
         run: |
           terraform apply -auto-approve \
-            -var="environment=$ENV" \
-            -var="base_name=$BASE_NAME"
+          -var="environment=${{ github.event.inputs.environment }}" \
+          -var="base_name=${{ github.event.inputs.base_name }}"
