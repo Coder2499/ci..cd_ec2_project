@@ -1,5 +1,5 @@
 resource "aws_instance" "this" {
-  ami           = "ami-0c55b159cbfafe1f0" # change region-wise
+  ami           = "ami-045443a70fafb8bbc" # change region-wise
   instance_type = var.instance_type
 
   tags = {
