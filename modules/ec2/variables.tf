@@ -1,3 +1,11 @@
-variable "ami" {}
-variable "base_name" {}
-variable "environment" {}
+variable "instance_type" {
+  type = string
+}
+
+variable "base_name" {
+  type = string
+}
+
+variable "environment" {
+  type = string
+}

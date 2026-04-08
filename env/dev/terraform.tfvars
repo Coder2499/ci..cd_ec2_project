@@ -1,3 +1,3 @@
-environment = "dev"
-base_name   = "myapp"
-ami         = "ami-0f58b397bc5c1f2e8"
+base_name     = "myapp"
+environment   = "dev"
+instance_type = "t3.micro"

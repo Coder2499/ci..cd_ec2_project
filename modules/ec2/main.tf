@@ -1,8 +1,8 @@
 resource "aws_instance" "this" {
-  ami           = var.ami
-  instance_type = "t3.micro"
+  ami           = "ami-0c55b159cbfafe1f0" # change region-wise
+  instance_type = var.instance_type
 
   tags = {
-    Name = "${var.base_name}-${var.environment}-ec2"
+    Name = "${var.base_name}-${var.environment}"
   }
 }
