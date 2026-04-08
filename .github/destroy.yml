@@ -1,0 +1,36 @@
+name: Destroy EC2
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Choose environment to destroy"
+        required: true
+        type: choice
+        options:
+          - dev
+          - qa
+          - prod
+          - all
+
+jobs:
+  destroy:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        env: [dev, qa, prod]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+
+      - name: Run Destroy
+        if: ${{ github.event.inputs.environment == 'all' || github.event.inputs.environment == matrix.env }}
+        run: |
+          cd env/${{ matrix.env }}
+          terraform init
+          terraform destroy -auto-approve

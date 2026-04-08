@@ -1,0 +1,36 @@
+name: Deploy EC2
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Choose environment"
+        required: true
+        type: choice
+        options:
+          - dev
+          - qa
+          - prod
+      base_name:
+        description: "Enter base server name"
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: env/${{ github.event.inputs.environment }}
+
+      - name: Terraform Apply
+        run: |
+          terraform apply -auto-approve -var="base_name=${{ github.event.inputs.base_name }}"
+        working-directory: env/${{ github.event.inputs.environment }}
